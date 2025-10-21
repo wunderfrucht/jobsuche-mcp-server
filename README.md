@@ -89,6 +89,7 @@ Add to your Continue configuration:
 Search for jobs in Germany using various filters.
 
 **Parameters:**
+
 - `job_title` (optional): Job title or keywords (e.g., "Software Engineer", "Data Scientist")
 - `location` (optional): Location name (e.g., "Berlin", "München", "Deutschland")
 - `radius_km` (optional): Search radius in kilometers from the location
@@ -132,6 +133,7 @@ Search for jobs in Germany using various filters.
 Get detailed information about a specific job posting.
 
 **Parameters:**
+
 - `reference_number` (required): Job reference number from search results
 
 **Example:**
@@ -234,6 +236,7 @@ echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search_job
 ## API Information
 
 This server uses the official Bundesagentur für Arbeit (German Federal Employment Agency) Jobsuche API:
+
 - **Base URL**: `https://rest.arbeitsagentur.de/jobboerse/jobsuche-service`
 - **Documentation**: Available via the `jobsuche` Rust crate
 - **Rate Limiting**: Subject to API provider limits
