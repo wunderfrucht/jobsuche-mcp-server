@@ -22,4 +22,4 @@ rand = "0.9"
 pulseengine-mcp-server = { version = "0.11.0", features = ["stdio-logging"] }
 pulseengine-mcp-macros = { version = "0.11.0" }
 pulseengine-mcp-protocol = { version = "0.11.0" }
-pulseengine-mcp-transport = { version = "0.11.0" }
+pulseengine-mcp-transport = { version = "0.13.0" }
