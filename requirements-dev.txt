@@ -1,0 +1,24 @@
+# Python development dependencies for MCP Server Template
+# Install with: pip install -r requirements-dev.txt
+
+# Pre-commit framework
+pre-commit>=3.5.0
+
+# Secret detection
+detect-secrets>=1.4.0
+
+# Code formatting and linting
+black>=23.0.0
+flake8>=6.0.0
+isort>=5.12.0
+
+# Documentation
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+
+# Testing utilities (if you add Python tests)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Development utilities
+ipython>=8.12.0
