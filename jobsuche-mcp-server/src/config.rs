@@ -262,8 +262,10 @@ mod tests {
 
     #[test]
     fn test_validate_empty_url() {
-        let mut config = JobsucheConfig::default();
-        config.api_url = "".to_string();
+        let config = JobsucheConfig {
+            api_url: "".to_string(),
+            ..Default::default()
+        };
         let result = config.validate();
         assert!(result.is_err());
         assert!(result
@@ -274,8 +276,10 @@ mod tests {
 
     #[test]
     fn test_validate_invalid_url_scheme() {
-        let mut config = JobsucheConfig::default();
-        config.api_url = "ftp://example.com".to_string();
+        let config = JobsucheConfig {
+            api_url: "ftp://example.com".to_string(),
+            ..Default::default()
+        };
         let result = config.validate();
         assert!(result.is_err());
         assert!(result
@@ -286,15 +290,19 @@ mod tests {
 
     #[test]
     fn test_validate_http_url() {
-        let mut config = JobsucheConfig::default();
-        config.api_url = "http://example.com".to_string();
+        let config = JobsucheConfig {
+            api_url: "http://example.com".to_string(),
+            ..Default::default()
+        };
         assert!(config.validate().is_ok());
     }
 
     #[test]
     fn test_validate_https_url() {
-        let mut config = JobsucheConfig::default();
-        config.api_url = "https://example.com".to_string();
+        let config = JobsucheConfig {
+            api_url: "https://example.com".to_string(),
+            ..Default::default()
+        };
         assert!(config.validate().is_ok());
     }
 }
