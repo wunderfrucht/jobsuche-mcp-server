@@ -32,3 +32,6 @@ schemars = "1.0"
 
 # Jobsuche API client
 jobsuche = { version = "0.2.0", features = ["async"] }
+
+[dev-dependencies]
+serial_test = "3.2"

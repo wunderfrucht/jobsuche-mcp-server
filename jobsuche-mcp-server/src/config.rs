@@ -113,6 +113,7 @@ impl JobsucheConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::env;
 
     #[test]
@@ -138,6 +139,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_defaults() {
         // Clear env vars
         env::remove_var("JOBSUCHE_API_URL");
@@ -156,6 +158,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_custom_api_url() {
         env::set_var("JOBSUCHE_API_URL", "https://custom.api.example.com");
         let config = JobsucheConfig::load().unwrap();
@@ -164,6 +167,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_api_key() {
         env::set_var("JOBSUCHE_API_KEY", "test-key-123");
         let config = JobsucheConfig::load().unwrap();
@@ -172,6 +176,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_custom_page_sizes() {
         env::set_var("JOBSUCHE_DEFAULT_PAGE_SIZE", "50");
         env::set_var("JOBSUCHE_MAX_PAGE_SIZE", "75");
@@ -183,6 +188,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_invalid_page_size() {
         env::set_var("JOBSUCHE_DEFAULT_PAGE_SIZE", "not-a-number");
         let config = JobsucheConfig::load().unwrap();
@@ -191,6 +197,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_zero_default_page_size() {
         env::set_var("JOBSUCHE_DEFAULT_PAGE_SIZE", "0");
         let result = JobsucheConfig::load();
@@ -203,6 +210,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_zero_max_page_size() {
         // Clear env vars first
         env::remove_var("JOBSUCHE_MAX_PAGE_SIZE");
@@ -217,6 +225,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_default_exceeding_max() {
         // Clear any existing values first
         env::remove_var("JOBSUCHE_DEFAULT_PAGE_SIZE");
@@ -233,6 +242,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_with_max_exceeding_api_limit() {
         env::set_var("JOBSUCHE_MAX_PAGE_SIZE", "150");
         let result = JobsucheConfig::load();
