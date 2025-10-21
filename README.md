@@ -1,11 +1,13 @@
 # Jobsuche MCP Server
 
-An AI-friendly job search integration server using the Model Context Protocol (MCP). This server provides tools for searching German job listings via the Federal Employment Agency (Bundesagentur für Arbeit) API.
+An AI-friendly job search integration server using the Model Context Protocol (MCP).
+This server provides tools for searching German job listings via the Federal Employment
+Agency (Bundesagentur für Arbeit) API.
 
 ## Features
 
 - **AI-Friendly Interface**: Simple, semantic parameters for job searching
-- **Official API Integration**: Uses the `jobsuche` crate for reliable API access  
+- **Official API Integration**: Uses the `jobsuche` crate for reliable API access
 - **Rich Filtering**: Search by location, job title, employment type, contract type, and more
 - **Comprehensive Details**: Get full job information including descriptions and requirements
 - **Pagination Support**: Handle large result sets efficiently
@@ -90,7 +92,7 @@ Search for jobs in Germany using various filters.
 - `job_title` (optional): Job title or keywords (e.g., "Software Engineer", "Data Scientist")
 - `location` (optional): Location name (e.g., "Berlin", "München", "Deutschland")
 - `radius_km` (optional): Search radius in kilometers from the location
-- `employment_type` (optional): Employment type filter  
+- `employment_type` (optional): Employment type filter
   - Options: `"fulltime"`, `"parttime"`, `"mini_job"`, `"home_office"`, `"shift"`
 - `contract_type` (optional): Contract type filter
   - Options: `"permanent"`, `"temporary"`
