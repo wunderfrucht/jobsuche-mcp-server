@@ -19,7 +19,7 @@ async-trait = "0.1"
 rand = "0.9"
 
 # PulseEngine MCP Framework - Published v0.11.0
-pulseengine-mcp-server = { version = "0.11.0", features = ["stdio-logging"] }
+pulseengine-mcp-server = { version = "0.13.0", features = ["stdio-logging"] }
 pulseengine-mcp-macros = { version = "0.11.0" }
 pulseengine-mcp-protocol = { version = "0.11.0" }
 pulseengine-mcp-transport = { version = "0.11.0" }
