@@ -109,3 +109,182 @@ impl JobsucheConfig {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    #[test]
+    fn test_default_config() {
+        let config = JobsucheConfig::default();
+        assert_eq!(
+            config.api_url,
+            "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service"
+        );
+        assert_eq!(config.api_key, None);
+        assert_eq!(config.default_page_size, 25);
+        assert_eq!(config.max_page_size, 100);
+    }
+
+    #[test]
+    fn test_default_page_size() {
+        assert_eq!(default_page_size(), 25);
+    }
+
+    #[test]
+    fn test_default_max_page_size() {
+        assert_eq!(default_max_page_size(), 100);
+    }
+
+    #[test]
+    fn test_load_with_defaults() {
+        // Clear env vars
+        env::remove_var("JOBSUCHE_API_URL");
+        env::remove_var("JOBSUCHE_API_KEY");
+        env::remove_var("JOBSUCHE_DEFAULT_PAGE_SIZE");
+        env::remove_var("JOBSUCHE_MAX_PAGE_SIZE");
+
+        let config = JobsucheConfig::load().unwrap();
+        assert_eq!(
+            config.api_url,
+            "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service"
+        );
+        assert_eq!(config.api_key, None);
+        assert_eq!(config.default_page_size, 25);
+        assert_eq!(config.max_page_size, 100);
+    }
+
+    #[test]
+    fn test_load_with_custom_api_url() {
+        env::set_var("JOBSUCHE_API_URL", "https://custom.api.example.com");
+        let config = JobsucheConfig::load().unwrap();
+        assert_eq!(config.api_url, "https://custom.api.example.com");
+        env::remove_var("JOBSUCHE_API_URL");
+    }
+
+    #[test]
+    fn test_load_with_api_key() {
+        env::set_var("JOBSUCHE_API_KEY", "test-key-123");
+        let config = JobsucheConfig::load().unwrap();
+        assert_eq!(config.api_key, Some("test-key-123".to_string()));
+        env::remove_var("JOBSUCHE_API_KEY");
+    }
+
+    #[test]
+    fn test_load_with_custom_page_sizes() {
+        env::set_var("JOBSUCHE_DEFAULT_PAGE_SIZE", "50");
+        env::set_var("JOBSUCHE_MAX_PAGE_SIZE", "75");
+        let config = JobsucheConfig::load().unwrap();
+        assert_eq!(config.default_page_size, 50);
+        assert_eq!(config.max_page_size, 75);
+        env::remove_var("JOBSUCHE_DEFAULT_PAGE_SIZE");
+        env::remove_var("JOBSUCHE_MAX_PAGE_SIZE");
+    }
+
+    #[test]
+    fn test_load_with_invalid_page_size() {
+        env::set_var("JOBSUCHE_DEFAULT_PAGE_SIZE", "not-a-number");
+        let config = JobsucheConfig::load().unwrap();
+        assert_eq!(config.default_page_size, 25); // Falls back to default
+        env::remove_var("JOBSUCHE_DEFAULT_PAGE_SIZE");
+    }
+
+    #[test]
+    fn test_load_with_zero_default_page_size() {
+        env::set_var("JOBSUCHE_DEFAULT_PAGE_SIZE", "0");
+        let result = JobsucheConfig::load();
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Default page size must be greater than 0"));
+        env::remove_var("JOBSUCHE_DEFAULT_PAGE_SIZE");
+    }
+
+    #[test]
+    fn test_load_with_zero_max_page_size() {
+        // Clear env vars first
+        env::remove_var("JOBSUCHE_MAX_PAGE_SIZE");
+        env::remove_var("JOBSUCHE_DEFAULT_PAGE_SIZE");
+
+        env::set_var("JOBSUCHE_MAX_PAGE_SIZE", "0");
+        let result = JobsucheConfig::load();
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Max page size") || err_msg.contains("greater than 0"));
+        env::remove_var("JOBSUCHE_MAX_PAGE_SIZE");
+    }
+
+    #[test]
+    fn test_load_with_default_exceeding_max() {
+        // Clear any existing values first
+        env::remove_var("JOBSUCHE_DEFAULT_PAGE_SIZE");
+        env::remove_var("JOBSUCHE_MAX_PAGE_SIZE");
+
+        env::set_var("JOBSUCHE_DEFAULT_PAGE_SIZE", "200");
+        env::set_var("JOBSUCHE_MAX_PAGE_SIZE", "100");
+        let result = JobsucheConfig::load();
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Default page size") || err_msg.contains("cannot exceed"));
+        env::remove_var("JOBSUCHE_DEFAULT_PAGE_SIZE");
+        env::remove_var("JOBSUCHE_MAX_PAGE_SIZE");
+    }
+
+    #[test]
+    fn test_load_with_max_exceeding_api_limit() {
+        env::set_var("JOBSUCHE_MAX_PAGE_SIZE", "150");
+        let result = JobsucheConfig::load();
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Max page size cannot exceed 100"));
+        env::remove_var("JOBSUCHE_MAX_PAGE_SIZE");
+    }
+
+    #[test]
+    fn test_validate_valid_config() {
+        let config = JobsucheConfig::default();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_empty_url() {
+        let mut config = JobsucheConfig::default();
+        config.api_url = "".to_string();
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("API URL cannot be empty"));
+    }
+
+    #[test]
+    fn test_validate_invalid_url_scheme() {
+        let mut config = JobsucheConfig::default();
+        config.api_url = "ftp://example.com".to_string();
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("API URL must start with http:// or https://"));
+    }
+
+    #[test]
+    fn test_validate_http_url() {
+        let mut config = JobsucheConfig::default();
+        config.api_url = "http://example.com".to_string();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_https_url() {
+        let mut config = JobsucheConfig::default();
+        config.api_url = "https://example.com".to_string();
+        assert!(config.validate().is_ok());
+    }
+}

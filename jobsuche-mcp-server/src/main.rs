@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting Jobsuche MCP Server...");
 
     // Create the Jobsuche MCP server instance
-    let jobsuche_server = match JobsucheMcpServer::new() {
+    let jobsuche_server = match JobsucheMcpServer::new().await {
         Ok(server) => {
             info!("Jobsuche MCP Server created successfully");
             server

@@ -31,4 +31,4 @@ pulseengine-mcp-transport = { workspace = true }
 schemars = "1.0"
 
 # Jobsuche API client
-jobsuche = "0.1.0"
+jobsuche = { version = "0.2.0", features = ["async"] }

@@ -175,6 +175,38 @@ jobs:
       - name: Run security audit
         run: cargo audit
 
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+
+      - name: Generate coverage
+        run: cargo llvm-cov --lib --lcov --output-path lcov.info
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(cargo llvm-cov --lib --summary-only 2>&1 | grep "TOTAL" | awk '{print $10}' | sed 's/%//')
+          echo "Coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 88.0" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below 88% threshold"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE}% meets threshold"
+          fi
+
   validation:
     name: Template Validation
     runs-on: ubuntu-latest
