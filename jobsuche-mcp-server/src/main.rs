@@ -24,8 +24,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             error!("Failed to create Jobsuche MCP Server: {}", e);
             eprintln!("Failed to start Jobsuche MCP Server: {}", e);
             eprintln!("\nPlease check:");
-            eprintln!("  - JOBSUCHE_API_URL environment variable (optional, uses default if not set)");
-            eprintln!("  - JOBSUCHE_API_KEY environment variable (optional, uses default if not set)");
+            eprintln!(
+                "  - JOBSUCHE_API_URL environment variable (optional, uses default if not set)"
+            );
+            eprintln!(
+                "  - JOBSUCHE_API_KEY environment variable (optional, uses default if not set)"
+            );
             eprintln!("\nFor help, see the README.md file.");
             std::process::exit(1);
         }

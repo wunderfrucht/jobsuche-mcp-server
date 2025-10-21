@@ -50,10 +50,9 @@ impl JobsucheConfig {
     /// - `JOBSUCHE_DEFAULT_PAGE_SIZE`: Default page size (optional, defaults to 25)
     /// - `JOBSUCHE_MAX_PAGE_SIZE`: Maximum page size (optional, defaults to 100)
     pub fn load() -> Result<Self> {
-        let api_url = env::var("JOBSUCHE_API_URL")
-            .unwrap_or_else(|_| {
-                "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service".to_string()
-            });
+        let api_url = env::var("JOBSUCHE_API_URL").unwrap_or_else(|_| {
+            "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service".to_string()
+        });
 
         let api_key = env::var("JOBSUCHE_API_KEY").ok();
 

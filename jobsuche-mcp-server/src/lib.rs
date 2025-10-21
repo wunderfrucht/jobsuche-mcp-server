@@ -12,10 +12,10 @@
 //! - **Comprehensive Details**: Get full job information including descriptions and requirements
 //! - **Pagination Support**: Handle large result sets efficiently
 
-use jobsuche::{Arbeitszeit, Credentials, Jobsuche, JobSearchResponse, SearchOptions, JobDetails};
+use jobsuche::{Arbeitszeit, Credentials, JobDetails, JobSearchResponse, Jobsuche, SearchOptions};
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::{info, instrument};
@@ -247,10 +247,7 @@ impl JobsucheMcpServer {
     /// - Recent jobs in München: `{"location": "München", "published_since_days": 7}`
     /// - Full-time jobs nationwide: `{"employment_type": ["fulltime"]}`
     #[instrument(skip(self))]
-    pub async fn search_jobs(
-        &self,
-        params: SearchJobsParams,
-    ) -> anyhow::Result<SearchJobsResult> {
+    pub async fn search_jobs(&self, params: SearchJobsParams) -> anyhow::Result<SearchJobsResult> {
         info!("Searching jobs with params: {:?}", params);
         let start = Instant::now();
 
@@ -385,8 +382,8 @@ impl JobsucheMcpServer {
             contract_type: details.befristung,
             start_date: details.eintrittsdatum,
             application_deadline: None, // Not available in API
-            contact_info: None,          // Not available in current API version
-            external_url: None,          // Not available in current API version
+            contact_info: None,         // Not available in current API version
+            external_url: None,         // Not available in current API version
             raw_data,
         };
 
