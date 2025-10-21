@@ -6,7 +6,7 @@ description = "AI-friendly job search integration server using the German Federa
 license = "MIT"
 authors = ["Jobsuche MCP Team <team@wunderfrucht.com>"]
 repository = "https://github.com/wunderfrucht/jobsuche-mcp-server"
-keywords = ["mcp", "model-context-protocol", "job-search", "germany", "jobs"]
+keywords = ["mcp", "job-search", "germany", "jobs", "api"]
 
 [[bin]]
 name = "jobsuche-mcp-server"
