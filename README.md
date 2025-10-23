@@ -100,6 +100,8 @@ Search for jobs in Germany using various filters.
 - `published_since_days` (optional): Days since publication (0-100, default: 30)
 - `page_size` (optional): Number of results per page (1-100)
 - `page` (optional): Page number for pagination (starting from 1)
+- `employer` (optional): Employer name to search for (e.g., "BARMER", "Siemens")
+- `branch` (optional): Industry/branch to search in (e.g., "IT", "Gesundheitswesen")
 
 **Examples:**
 
@@ -125,6 +127,14 @@ Search for jobs in Germany using various filters.
   "location": "Deutschland",
   "employment_type": ["fulltime", "parttime"],
   "page_size": 50
+}
+```
+
+```json
+{
+  "employer": "BARMER",
+  "location": "Wuppertal",
+  "employment_type": ["parttime"]
 }
 ```
 
@@ -193,9 +203,81 @@ Get server status and connection information.
   "application_deadline": null,
   "contact_info": null,
   "external_url": null,
+  "employer_profile_url": null,
+  "partner_url": "https://example.com/partner",
+  "salary": "50.000 - 70.000 EUR",
+  "contract_duration": "12 Monate",
+  "takeover_opportunity": null,
+  "job_type": "arbeitsstelle",
+  "open_positions": null,
+  "company_size": null,
+  "employer_description": null,
+  "branch": null,
+  "published_date": null,
+  "first_published": "2025-10-10",
+  "only_for_disabled": false,
+  "fulltime": true,
+  "entry_period": "ab 2025-11-01",
+  "publication_period": "2025-10-01 - 2025-11-30",
+  "is_minor_employment": false,
+  "is_temp_agency": false,
+  "is_private_agency": false,
+  "career_changer_suitable": true,
+  "cipher_number": null,
   "raw_data": { ... }
 }
 ```
+
+**Available Fields:**
+
+- **Basic Information:**
+  - `reference_number`: Unique job reference
+  - `title`: Job title
+  - `description`: Full job description
+  - `employer`: Company name
+  - `location`: Job location
+
+- **Employment Details:**
+  - `employment_type`: Type of employment (Vollzeit, Teilzeit, derived from fulltime flag)
+  - `fulltime`: Boolean indicator for full-time employment (new in v0.2.0)
+  - `contract_duration`: Duration of contract (if temporary)
+  - `start_date`: Expected start date (formatted from entry_period)
+  - `entry_period`: Entry date range (new in v0.2.0)
+  - `publication_period`: Publication date range (new in v0.2.0)
+
+- **Employment Types (new in v0.2.0):**
+  - `is_minor_employment`: Geringfügige Beschäftigung/Minijob
+  - `is_temp_agency`: Temporary employment agency (Zeitarbeit)
+  - `is_private_agency`: Private employment agency
+  - `career_changer_suitable`: Suitable for career changers (Quereinsteiger)
+
+- **Compensation:**
+  - `salary`: Salary information (if available)
+
+- **Application Information:**
+  - `external_url`: External application URL (may be available in search results)
+  - `partner_url`: Partner/alliance URL
+  - `cipher_number`: Cipher number for anonymous postings (new in v0.2.0)
+  - `application_deadline`: Application deadline (not available in API)
+  - `contact_info`: Contact information (not available in API)
+
+- **Additional Information:**
+  - `job_type`: Type of position (arbeitsstelle, ausbildung, praktikum)
+  - `first_published`: First publication date
+  - `only_for_disabled`: Only for severely disabled persons
+  - `raw_data`: Complete raw API response
+
+- **Fields No Longer Available (API v0.3.0):**
+  - `employer_profile_url`: Removed from API
+  - `takeover_opportunity`: Removed from API
+  - `open_positions`: Removed from API
+  - `company_size`: Removed from API
+  - `employer_description`: Removed from API
+  - `branch`: Removed from API
+  - `published_date`: Removed from API
+  - `contract_type`: Removed from API
+
+  *These fields remain in the response structure for backward compatibility but will always return `null`.*
 
 ## Development
 
@@ -243,10 +325,20 @@ This server uses the official Bundesagentur für Arbeit (German Federal Employme
 
 ### Known API Limitations
 
+- **Contact Information**: The API does not provide direct contact details (email, phone) or application deadlines
+- **External URLs**: May only be available in search results, not in detailed job information
+- **Employer Search**: Combined with job title in search query (no dedicated filter)
+- **Branch Search**: Combined with job title in search query (no dedicated filter)
+- **API v0.3.0 Changes**: Several fields from previous API versions are no longer available (see "Fields No Longer Available" section)
 - Results are sorted oldest-to-newest (no custom sorting available)
 - Maximum 100 results per page
 - Job details may return 404 if jobs expire quickly
-- Employer search is case-sensitive and exact-match only
+
+### Workarounds for Missing Data
+
+- **For Application URLs**: Use the `external_url` field from search results, or check the `partner_url` in job details
+- **For Employer-Specific Search**: Use the `employer` parameter which combines with `job_title` in the search
+- **For Removed Fields**: Check the `raw_data` field which contains the complete API response - some data may still be available in undocumented fields
 
 ## Troubleshooting
 

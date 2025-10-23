@@ -1,6 +1,6 @@
 [package]
 name = "jobsuche-mcp-server"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "AI-friendly job search integration server using the German Federal Employment Agency API"
 license = "MIT"
@@ -31,7 +31,7 @@ pulseengine-mcp-transport = { workspace = true }
 schemars = "1.0"
 
 # Jobsuche API client
-jobsuche = { version = "0.2.0", features = ["async"] }
+jobsuche = { version = "0.3.0", features = ["async"] }
 
 [dev-dependencies]
 serial_test = "3.2"

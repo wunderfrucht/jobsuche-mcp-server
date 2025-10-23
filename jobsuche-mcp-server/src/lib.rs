@@ -12,9 +12,7 @@
 //! - **Comprehensive Details**: Get full job information including descriptions and requirements
 //! - **Pagination Support**: Handle large result sets efficiently
 
-use jobsuche::{
-    Arbeitszeit, Credentials, JobDetails, JobSearchResponse, JobsucheAsync, SearchOptions,
-};
+use jobsuche::{Arbeitszeit, Credentials, JobDetails, JobSearchResponse, JobsucheAsync, SearchOptions};
 use pulseengine_mcp_macros::{mcp_server, mcp_tools};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -66,6 +64,16 @@ pub struct SearchJobsParams {
 
     /// Page number for pagination (starting from 1)
     pub page: Option<u64>,
+
+    /// Employer name to search for
+    /// Note: This is combined with job_title in the search query
+    /// Example: "BARMER", "Siemens", "Deutsche Bahn"
+    pub employer: Option<String>,
+
+    /// Branch/industry to search in
+    /// Note: This is combined with job_title in the search query
+    /// Example: "IT", "Gesundheitswesen", "Automotive"
+    pub branch: Option<String>,
 }
 
 /// Result from job search
@@ -147,14 +155,77 @@ pub struct GetJobDetailsResult {
     /// Start date
     pub start_date: Option<String>,
 
-    /// Application deadline
+    /// Application deadline (not available in API)
     pub application_deadline: Option<String>,
 
-    /// Contact information
+    /// Contact information (not available in API)
     pub contact_info: Option<String>,
 
     /// External application URL
     pub external_url: Option<String>,
+
+    /// Employer profile/presentation URL
+    pub employer_profile_url: Option<String>,
+
+    /// Partner URL
+    pub partner_url: Option<String>,
+
+    /// Salary/compensation information
+    pub salary: Option<String>,
+
+    /// Contract duration
+    pub contract_duration: Option<String>,
+
+    /// Takeover opportunity after contract (not available in API v0.3.0)
+    pub takeover_opportunity: Option<bool>,
+
+    /// Job type (e.g., "arbeitsstelle", "ausbildung", "praktikum")
+    pub job_type: Option<String>,
+
+    /// Number of open positions (not available in API v0.3.0)
+    pub open_positions: Option<u32>,
+
+    /// Company size (not available in API v0.3.0)
+    pub company_size: Option<String>,
+
+    /// Employer description (not available in API v0.3.0)
+    pub employer_description: Option<String>,
+
+    /// Industry/branch (not available in API v0.3.0)
+    pub branch: Option<String>,
+
+    /// Publication date (not available in API v0.3.0)
+    pub published_date: Option<String>,
+
+    /// First publication date
+    pub first_published: Option<String>,
+
+    /// Only for severely disabled persons
+    pub only_for_disabled: Option<bool>,
+
+    /// Full-time employment
+    pub fulltime: Option<bool>,
+
+    /// Entry period (date range)
+    pub entry_period: Option<String>,
+
+    /// Publication period (date range)
+    pub publication_period: Option<String>,
+
+    /// Minor employment (Geringfügige Beschäftigung/Minijob)
+    pub is_minor_employment: Option<bool>,
+
+    /// Temporary employment agency (Zeitarbeit)
+    pub is_temp_agency: Option<bool>,
+
+    /// Private employment agency
+    pub is_private_agency: Option<bool>,
+
+    /// Suitable for career changers (Quereinsteiger)
+    pub career_changer_suitable: Option<bool>,
+
+    /// Cipher number (for anonymous job postings)
+    pub cipher_number: Option<String>,
 
     /// Raw JSON for additional fields
     pub raw_data: serde_json::Value,
@@ -165,7 +236,7 @@ pub struct GetJobDetailsResult {
 /// Main server implementation providing AI-friendly tools for German job search.
 #[mcp_server(
     name = "Jobsuche MCP Server",
-    version = "0.1.0",
+    version = "0.2.0",
     description = "AI-friendly job search integration using the German Federal Employment Agency API",
     auth = "disabled"
 )]
@@ -255,9 +326,24 @@ impl JobsucheMcpServer {
 
         let mut search_opts = SearchOptions::builder();
 
-        // Job title
+        // Build search query combining job_title, employer, and branch
+        let mut search_terms = Vec::new();
+
         if let Some(ref title) = params.job_title {
-            search_opts.was(title);
+            search_terms.push(title.clone());
+        }
+
+        if let Some(ref employer) = params.employer {
+            search_terms.push(employer.clone());
+        }
+
+        if let Some(ref branch) = params.branch {
+            search_terms.push(branch.clone());
+        }
+
+        if !search_terms.is_empty() {
+            let combined_query = search_terms.join(" ");
+            search_opts.was(&combined_query);
         }
 
         // Location
@@ -363,16 +449,38 @@ impl JobsucheMcpServer {
         // Serialize to JSON for raw_data field
         let raw_data = serde_json::to_value(&details)?;
 
-        let location_str = details
-            .arbeitsorte
-            .first()
-            .and_then(|loc| loc.ort.clone())
-            .or_else(|| {
-                details
-                    .arbeitgeber_adresse
-                    .as_ref()
-                    .map(|addr| addr.ort.clone())
-            });
+        // Extract location from JobLocation (v0.3.0 structure)
+        let location_str = details.arbeitsorte.first().and_then(|loc| {
+            loc.adresse
+                .as_ref()
+                .and_then(|addr| addr.ort.clone())
+                .map(|ort| {
+                    if let Some(ref plz) = loc.adresse.as_ref().and_then(|a| a.plz.clone()) {
+                        format!("{} ({})", ort, plz)
+                    } else {
+                        ort
+                    }
+                })
+        });
+
+        // Format date ranges as strings
+        let entry_period = details.eintrittszeitraum.as_ref().map(|dr| {
+            match (&dr.von, &dr.bis) {
+                (Some(von), Some(bis)) => format!("{} - {}", von, bis),
+                (Some(von), None) => format!("ab {}", von),
+                (None, Some(bis)) => format!("bis {}", bis),
+                (None, None) => String::new(),
+            }
+        });
+
+        let publication_period = details.veroeffentlichungszeitraum.as_ref().map(|dr| {
+            match (&dr.von, &dr.bis) {
+                (Some(von), Some(bis)) => format!("{} - {}", von, bis),
+                (Some(von), None) => format!("ab {}", von),
+                (None, Some(bis)) => format!("bis {}", bis),
+                (None, None) => String::new(),
+            }
+        });
 
         let result = GetJobDetailsResult {
             reference_number: params.reference_number.clone(),
@@ -380,12 +488,35 @@ impl JobsucheMcpServer {
             description: details.stellenbeschreibung,
             employer: details.arbeitgeber,
             location: location_str,
-            employment_type: details.arbeitszeitmodelle.first().cloned(),
-            contract_type: details.befristung,
-            start_date: details.eintrittsdatum,
+            employment_type: details
+                .arbeitszeit_vollzeit
+                .map(|vz| if vz { "Vollzeit" } else { "Teilzeit" }.to_string()),
+            contract_type: None, // Not available in API v0.3.0
+            start_date: entry_period.clone(),
             application_deadline: None, // Not available in API
-            contact_info: None,         // Not available in current API version
-            external_url: None,         // Not available in current API version
+            contact_info: None,         // Not available in API
+            external_url: None,         // Note: May be available in search results, not in details
+            employer_profile_url: None, // Not available in API v0.3.0
+            partner_url: details.allianzpartner_url,
+            salary: details.verguetung,
+            contract_duration: details.vertragsdauer,
+            takeover_opportunity: None, // Not available in API v0.3.0
+            job_type: details.stellenangebots_art,
+            open_positions: None,        // Not available in API v0.3.0
+            company_size: None,          // Not available in API v0.3.0
+            employer_description: None,  // Not available in API v0.3.0
+            branch: None,                // Not available in API v0.3.0
+            published_date: None,        // Not available in API v0.3.0
+            first_published: details.erste_veroeffentlichungsdatum,
+            only_for_disabled: details.nur_fuer_schwerbehinderte,
+            fulltime: details.arbeitszeit_vollzeit,
+            entry_period,
+            publication_period,
+            is_minor_employment: details.ist_geringfuegige_beschaeftigung,
+            is_temp_agency: details.ist_arbeitnehmer_ueberlassung,
+            is_private_agency: details.ist_private_arbeitsvermittlung,
+            career_changer_suitable: details.quereinstieg_geeignet,
+            cipher_number: details.chiffrenummer,
             raw_data,
         };
 
@@ -414,7 +545,7 @@ impl JobsucheMcpServer {
 
         Ok(JobsucheServerStatus {
             server_name: "Jobsuche MCP Server".to_string(),
-            version: "0.1.0".to_string(),
+            version: "0.2.0".to_string(),
             uptime_seconds: self.get_uptime_seconds(),
             api_url: self.config.api_url.clone(),
             api_connection_status: connection_status,
@@ -508,6 +639,8 @@ mod tests {
             published_since_days: Some(7),
             page_size: Some(25),
             page: Some(1),
+            employer: None,
+            branch: None,
         };
 
         let json = serde_json::to_string(&params).unwrap();
@@ -516,10 +649,50 @@ mod tests {
     }
 
     #[test]
+    fn test_search_params_with_employer() {
+        let params = SearchJobsParams {
+            job_title: Some("Kundenberaterin".to_string()),
+            location: Some("Wuppertal".to_string()),
+            radius_km: None,
+            employment_type: Some(vec!["parttime".to_string()]),
+            contract_type: None,
+            published_since_days: None,
+            page_size: None,
+            page: None,
+            employer: Some("BARMER".to_string()),
+            branch: None,
+        };
+
+        let json = serde_json::to_string(&params).unwrap();
+        assert!(json.contains("BARMER"));
+        assert!(json.contains("Wuppertal"));
+    }
+
+    #[test]
+    fn test_search_params_with_branch() {
+        let params = SearchJobsParams {
+            job_title: None,
+            location: Some("München".to_string()),
+            radius_km: Some(25),
+            employment_type: None,
+            contract_type: None,
+            published_since_days: Some(14),
+            page_size: None,
+            page: None,
+            employer: None,
+            branch: Some("IT".to_string()),
+        };
+
+        let json = serde_json::to_string(&params).unwrap();
+        assert!(json.contains("IT"));
+        assert!(json.contains("München"));
+    }
+
+    #[test]
     fn test_server_status_serialization() {
         let status = JobsucheServerStatus {
             server_name: "Test Server".to_string(),
-            version: "1.0.0".to_string(),
+            version: "0.2.0".to_string(),
             uptime_seconds: 3600,
             api_url: "https://test.api".to_string(),
             api_connection_status: "Connected".to_string(),
@@ -528,6 +701,7 @@ mod tests {
 
         let json = serde_json::to_string(&status).unwrap();
         assert!(json.contains("Test Server"));
+        assert!(json.contains("0.2.0"));
         assert!(json.contains("3600"));
     }
 
@@ -573,17 +747,40 @@ fn test_job_details_result_with_location() {
         employer: Some("Test Employer".to_string()),
         location: Some("Test Location".to_string()),
         employment_type: Some("Vollzeit".to_string()),
-        contract_type: Some("unbefristet".to_string()),
+        contract_type: None,
         start_date: Some("2025-01-01".to_string()),
         application_deadline: None,
         contact_info: None,
         external_url: None,
+        employer_profile_url: None,
+        partner_url: None,
+        salary: Some("45.000 - 55.000 EUR".to_string()),
+        contract_duration: None,
+        takeover_opportunity: None,
+        job_type: Some("arbeitsstelle".to_string()),
+        open_positions: None,
+        company_size: None,
+        employer_description: None,
+        branch: None,
+        published_date: None,
+        first_published: Some("2025-10-15".to_string()),
+        only_for_disabled: Some(false),
+        fulltime: Some(true),
+        entry_period: Some("ab 2025-01-01".to_string()),
+        publication_period: None,
+        is_minor_employment: Some(false),
+        is_temp_agency: Some(false),
+        is_private_agency: Some(false),
+        career_changer_suitable: Some(true),
+        cipher_number: None,
         raw_data: serde_json::json!({}),
     };
 
     assert_eq!(result.reference_number, "TEST-123");
     assert_eq!(result.title, Some("Test Title".to_string()));
     assert_eq!(result.location, Some("Test Location".to_string()));
+    assert_eq!(result.salary, Some("45.000 - 55.000 EUR".to_string()));
+    assert_eq!(result.fulltime, Some(true));
 }
 
 #[test]
@@ -652,12 +849,16 @@ fn test_search_jobs_params_defaults() {
         published_since_days: None,
         page_size: None,
         page: None,
+        employer: None,
+        branch: None,
     };
 
     // Test all fields are None
     assert!(params.job_title.is_none());
     assert!(params.location.is_none());
     assert!(params.radius_km.is_none());
+    assert!(params.employer.is_none());
+    assert!(params.branch.is_none());
 }
 
 #[test]
@@ -674,6 +875,27 @@ fn test_get_job_details_result_minimal() {
         application_deadline: None,
         contact_info: None,
         external_url: None,
+        employer_profile_url: None,
+        partner_url: None,
+        salary: None,
+        contract_duration: None,
+        takeover_opportunity: None,
+        job_type: None,
+        open_positions: None,
+        company_size: None,
+        employer_description: None,
+        branch: None,
+        published_date: None,
+        first_published: None,
+        only_for_disabled: None,
+        fulltime: None,
+        entry_period: None,
+        publication_period: None,
+        is_minor_employment: None,
+        is_temp_agency: None,
+        is_private_agency: None,
+        career_changer_suitable: None,
+        cipher_number: None,
         raw_data: serde_json::json!({"test": "data"}),
     };
 
@@ -686,7 +908,7 @@ fn test_get_job_details_result_minimal() {
 fn test_server_status_all_fields() {
     let status = JobsucheServerStatus {
         server_name: "Jobsuche MCP Server".to_string(),
-        version: "0.1.0".to_string(),
+        version: "0.2.0".to_string(),
         uptime_seconds: 12345,
         api_url: "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service".to_string(),
         api_connection_status: "Connected".to_string(),
@@ -694,6 +916,7 @@ fn test_server_status_all_fields() {
     };
 
     assert_eq!(status.server_name, "Jobsuche MCP Server");
+    assert_eq!(status.version, "0.2.0");
     assert_eq!(status.tools_count, 3);
     assert!(status.api_connection_status.contains("Connected"));
 }
