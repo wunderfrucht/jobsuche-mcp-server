@@ -128,6 +128,129 @@ pub struct GetJobDetailsParams {
     pub reference_number: String,
 }
 
+/// Optional field filtering for responses
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FieldFilter {
+    /// Fields to include (if specified, only these fields are returned)
+    pub include_fields: Option<Vec<String>>,
+
+    /// Fields to exclude (these fields will be omitted from the response)
+    pub exclude_fields: Option<Vec<String>>,
+}
+
+/// Parameters for search_jobs_with_details
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SearchJobsWithDetailsParams {
+    /// Search parameters (same as search_jobs)
+    pub job_title: Option<String>,
+    pub location: Option<String>,
+    pub radius_km: Option<u64>,
+    pub employment_type: Option<Vec<String>>,
+    pub contract_type: Option<Vec<String>>,
+    pub published_since_days: Option<u64>,
+    pub page_size: Option<u64>,
+    pub page: Option<u64>,
+    pub employer: Option<String>,
+    pub branch: Option<String>,
+
+    /// Automatically fetch details for top N results (default: 5, max: 20)
+    pub max_details: Option<u64>,
+
+    /// Optional field filtering to reduce response size
+    pub fields: Option<FieldFilter>,
+}
+
+/// Result from search_jobs_with_details
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchJobsWithDetailsResult {
+    /// Total number of results found
+    pub total_results: Option<u64>,
+
+    /// Current page number
+    pub current_page: Option<u64>,
+
+    /// Page size used
+    pub page_size: Option<u64>,
+
+    /// Number of jobs returned
+    pub jobs_count: usize,
+
+    /// Job listings with full details
+    pub jobs: Vec<GetJobDetailsResult>,
+
+    /// Search performance info
+    pub search_duration_ms: u64,
+
+    /// Details fetch performance info
+    pub details_duration_ms: u64,
+}
+
+/// Single search configuration for batch operations
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BatchSearchItem {
+    /// Name for this search (for identification in results)
+    pub name: String,
+
+    /// Search parameters
+    pub job_title: Option<String>,
+    pub location: Option<String>,
+    pub radius_km: Option<u64>,
+    pub employment_type: Option<Vec<String>>,
+    pub contract_type: Option<Vec<String>>,
+    pub published_since_days: Option<u64>,
+    pub employer: Option<String>,
+    pub branch: Option<String>,
+}
+
+/// Parameters for batch_search_jobs
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BatchSearchJobsParams {
+    /// List of searches to perform (max: 10)
+    pub searches: Vec<BatchSearchItem>,
+
+    /// Automatically fetch details for top N results per search (default: 3, max: 10)
+    pub max_details_per_search: Option<u64>,
+
+    /// Optional field filtering to reduce response size
+    pub fields: Option<FieldFilter>,
+}
+
+/// Result from a single batch search
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchSearchItemResult {
+    /// Name of this search
+    pub search_name: String,
+
+    /// Total number of results found
+    pub total_results: Option<u64>,
+
+    /// Number of jobs returned with details
+    pub jobs_count: usize,
+
+    /// Job listings with full details (if max_details_per_search > 0)
+    pub jobs: Vec<GetJobDetailsResult>,
+
+    /// Error message if search failed
+    pub error: Option<String>,
+}
+
+/// Result from batch_search_jobs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchSearchJobsResult {
+    /// Number of searches performed
+    pub searches_count: usize,
+
+    /// Results from each search
+    pub results: Vec<BatchSearchItemResult>,
+
+    /// Total execution time
+    pub total_duration_ms: u64,
+}
+
 /// Detailed job information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetJobDetailsResult {
@@ -236,7 +359,7 @@ pub struct GetJobDetailsResult {
 /// Main server implementation providing AI-friendly tools for German job search.
 #[mcp_server(
     name = "Jobsuche MCP Server",
-    version = "0.2.0",
+    version = "0.3.0",
     description = "AI-friendly job search integration using the German Federal Employment Agency API",
     auth = "disabled"
 )]
@@ -524,6 +647,193 @@ impl JobsucheMcpServer {
         Ok(result)
     }
 
+    /// Search for jobs and automatically fetch details for top results
+    ///
+    /// This tool combines search_jobs and get_job_details into a single operation,
+    /// making it more efficient for AI workflows. It searches for jobs and automatically
+    /// fetches full details for the top results.
+    ///
+    /// # Examples
+    /// - Search with auto-details: `{"location": "Wuppertal", "employment_type": ["parttime"], "max_details": 5}`
+    /// - With field filtering: `{"employer": "BARMER", "location": "Wuppertal", "max_details": 3, "fields": {"include_fields": ["title", "salary", "description"]}}`
+    #[instrument(skip(self))]
+    pub async fn search_jobs_with_details(
+        &self,
+        params: SearchJobsWithDetailsParams,
+    ) -> anyhow::Result<SearchJobsWithDetailsResult> {
+        info!("Searching jobs with automatic detail fetching");
+        let search_start = Instant::now();
+
+        // Convert to SearchJobsParams
+        let search_params = SearchJobsParams {
+            job_title: params.job_title,
+            location: params.location,
+            radius_km: params.radius_km,
+            employment_type: params.employment_type,
+            contract_type: params.contract_type,
+            published_since_days: params.published_since_days,
+            page_size: params.page_size,
+            page: params.page,
+            employer: params.employer,
+            branch: params.branch,
+        };
+
+        // Perform search
+        let search_result = self.search_jobs(search_params).await?;
+        let search_duration = search_start.elapsed();
+
+        // Determine how many details to fetch
+        let max_details = params.max_details.unwrap_or(5).min(20);
+        let jobs_to_fetch = search_result
+            .jobs
+            .iter()
+            .take(max_details as usize)
+            .collect::<Vec<_>>();
+
+        info!("Fetching details for {} jobs", jobs_to_fetch.len());
+        let details_start = Instant::now();
+
+        // Fetch details for each job
+        let mut jobs_with_details = Vec::new();
+        for job in jobs_to_fetch {
+            match self
+                .get_job_details(GetJobDetailsParams {
+                    reference_number: job.reference_number.clone(),
+                })
+                .await
+            {
+                Ok(details) => jobs_with_details.push(details),
+                Err(e) => {
+                    info!(
+                        "Failed to fetch details for {}: {}",
+                        job.reference_number, e
+                    );
+                    // Continue with other jobs even if one fails
+                }
+            }
+        }
+
+        let details_duration = details_start.elapsed();
+
+        info!(
+            "Search completed: {} jobs found, {} details fetched",
+            search_result.total_results.unwrap_or(0),
+            jobs_with_details.len()
+        );
+
+        Ok(SearchJobsWithDetailsResult {
+            total_results: search_result.total_results,
+            current_page: search_result.current_page,
+            page_size: search_result.page_size,
+            jobs_count: jobs_with_details.len(),
+            jobs: jobs_with_details,
+            search_duration_ms: search_duration.as_millis() as u64,
+            details_duration_ms: details_duration.as_millis() as u64,
+        })
+    }
+
+    /// Perform multiple job searches in a single operation
+    ///
+    /// This tool allows you to search for different types of jobs simultaneously,
+    /// making it perfect for comparing opportunities across employers, locations,
+    /// or job types. Each search can have different parameters and will return
+    /// results independently.
+    ///
+    /// # Examples
+    /// - Compare employers: `{"searches": [{"name": "BARMER", "employer": "BARMER", "location": "Wuppertal"}, {"name": "Siemens", "employer": "Siemens", "location": "Wuppertal"}], "max_details_per_search": 3}`
+    /// - Different job types: `{"searches": [{"name": "Sekretariat", "job_title": "Sekretärin"}, {"name": "Sport", "job_title": "Schwimm"}]}`
+    #[instrument(skip(self))]
+    pub async fn batch_search_jobs(
+        &self,
+        params: BatchSearchJobsParams,
+    ) -> anyhow::Result<BatchSearchJobsResult> {
+        let start = Instant::now();
+        let searches_count = params.searches.len().min(10); // Limit to 10 searches
+
+        info!("Performing batch search with {} searches", searches_count);
+
+        let max_details = params.max_details_per_search.unwrap_or(3).min(10);
+        let mut results = Vec::new();
+
+        // Process each search
+        for search_item in params.searches.iter().take(searches_count) {
+            info!("Processing search: {}", search_item.name);
+
+            // Convert to SearchJobsParams
+            let search_params = SearchJobsParams {
+                job_title: search_item.job_title.clone(),
+                location: search_item.location.clone(),
+                radius_km: search_item.radius_km,
+                employment_type: search_item.employment_type.clone(),
+                contract_type: search_item.contract_type.clone(),
+                published_since_days: search_item.published_since_days,
+                page_size: Some(max_details),
+                page: None,
+                employer: search_item.employer.clone(),
+                branch: search_item.branch.clone(),
+            };
+
+            // Perform search
+            let search_result = match self.search_jobs(search_params).await {
+                Ok(result) => result,
+                Err(e) => {
+                    // If search fails, add error result and continue
+                    results.push(BatchSearchItemResult {
+                        search_name: search_item.name.clone(),
+                        total_results: None,
+                        jobs_count: 0,
+                        jobs: Vec::new(),
+                        error: Some(format!("Search failed: {}", e)),
+                    });
+                    continue;
+                }
+            };
+
+            // Fetch details if requested
+            let mut jobs_with_details = Vec::new();
+            if max_details > 0 {
+                for job in search_result.jobs.iter().take(max_details as usize) {
+                    match self
+                        .get_job_details(GetJobDetailsParams {
+                            reference_number: job.reference_number.clone(),
+                        })
+                        .await
+                    {
+                        Ok(details) => jobs_with_details.push(details),
+                        Err(e) => {
+                            info!(
+                                "Failed to fetch details for {} in search '{}': {}",
+                                job.reference_number, search_item.name, e
+                            );
+                            // Continue with other jobs even if one fails
+                        }
+                    }
+                }
+            }
+
+            results.push(BatchSearchItemResult {
+                search_name: search_item.name.clone(),
+                total_results: search_result.total_results,
+                jobs_count: jobs_with_details.len(),
+                jobs: jobs_with_details,
+                error: None,
+            });
+        }
+
+        let duration = start.elapsed();
+        info!(
+            "Batch search completed: {} searches in {:?}",
+            results.len(),
+            duration
+        );
+
+        Ok(BatchSearchJobsResult {
+            searches_count: results.len(),
+            results,
+            total_duration_ms: duration.as_millis() as u64,
+        })
+    }
+
     /// Get server status and connection information
     ///
     /// Returns information about the server status, uptime, API configuration,
@@ -545,11 +855,11 @@ impl JobsucheMcpServer {
 
         Ok(JobsucheServerStatus {
             server_name: "Jobsuche MCP Server".to_string(),
-            version: "0.2.0".to_string(),
+            version: "0.3.0".to_string(),
             uptime_seconds: self.get_uptime_seconds(),
             api_url: self.config.api_url.clone(),
             api_connection_status: connection_status,
-            tools_count: 3, // search_jobs, get_job_details, get_server_status
+            tools_count: 5, // search_jobs, get_job_details, search_jobs_with_details, batch_search_jobs, get_server_status
         })
     }
 }
@@ -692,16 +1002,16 @@ mod tests {
     fn test_server_status_serialization() {
         let status = JobsucheServerStatus {
             server_name: "Test Server".to_string(),
-            version: "0.2.0".to_string(),
+            version: "0.3.0".to_string(),
             uptime_seconds: 3600,
             api_url: "https://test.api".to_string(),
             api_connection_status: "Connected".to_string(),
-            tools_count: 3,
+            tools_count: 5,
         };
 
         let json = serde_json::to_string(&status).unwrap();
         assert!(json.contains("Test Server"));
-        assert!(json.contains("0.2.0"));
+        assert!(json.contains("0.3.0"));
         assert!(json.contains("3600"));
     }
 
@@ -908,15 +1218,15 @@ fn test_get_job_details_result_minimal() {
 fn test_server_status_all_fields() {
     let status = JobsucheServerStatus {
         server_name: "Jobsuche MCP Server".to_string(),
-        version: "0.2.0".to_string(),
+        version: "0.3.0".to_string(),
         uptime_seconds: 12345,
         api_url: "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service".to_string(),
         api_connection_status: "Connected".to_string(),
-        tools_count: 3,
+        tools_count: 5,
     };
 
     assert_eq!(status.server_name, "Jobsuche MCP Server");
-    assert_eq!(status.version, "0.2.0");
-    assert_eq!(status.tools_count, 3);
+    assert_eq!(status.version, "0.3.0");
+    assert_eq!(status.tools_count, 5);
     assert!(status.api_connection_status.contains("Connected"));
 }

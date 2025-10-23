@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-10-23
+
+### Added
+
+- **Bulk Operations for AI Efficiency**: New tools for high-efficiency job searching
+  - `search_jobs_with_details`: Combines search and detail fetching in a single call
+    - Search for jobs and automatically get full details for top N results
+    - Configurable number of details to fetch (default: 5, max: 20)
+    - Reduces tool calls from N+1 to 1 for typical AI workflows
+
+  - `batch_search_jobs`: Perform multiple searches simultaneously
+    - Compare different employers, locations, or job types in one call
+    - Up to 10 parallel searches supported
+    - Each search can fetch details for top N results (default: 3, max: 10)
+    - Perfect for systematic job comparison workflows
+
+- **Field Filtering Infrastructure**: Prepared for future response optimization
+  - `FieldFilter` struct with `include_fields` and `exclude_fields`
+  - Reduces token usage for AI by returning only relevant fields
+  - Infrastructure ready, full implementation in future release
+
+### Changed
+
+- Server now reports 5 tools (was 3)
+- Improved error handling for bulk operations (continues on individual failures)
+
+### Performance
+
+- **Typical AI Workflow Improvement**:
+  - Before: 1 search + 5 detail calls = 6 tool invocations
+  - After: 1 `search_jobs_with_details` call = 1 tool invocation
+  - **83% reduction in tool calls**
+
 ## [0.2.0] - 2025-10-23
 
 ### Changed

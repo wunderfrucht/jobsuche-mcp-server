@@ -88,6 +88,8 @@ Add to your Continue configuration:
 
 Search for jobs in Germany using various filters.
 
+**Note:** For most use cases, consider using `search_jobs_with_details` or `batch_search_jobs` instead, as they are more efficient for AI workflows.
+
 **Parameters:**
 
 - `job_title` (optional): Job title or keywords (e.g., "Software Engineer", "Data Scientist")
@@ -154,7 +156,128 @@ Get detailed information about a specific job posting.
 }
 ```
 
-### 3. `get_server_status`
+### 3. `search_jobs_with_details` ⭐ RECOMMENDED
+
+Search for jobs and automatically fetch full details for top results in a single operation.
+
+**Why use this?** Combines `search_jobs` + multiple `get_job_details` calls into one efficient operation.
+
+**Parameters:**
+
+- All parameters from `search_jobs` (job_title, location, employment_type, etc.)
+- `max_details` (optional): Number of jobs to fetch details for (default: 5, max: 20)
+- `fields` (optional): Field filtering (see Field Filtering section)
+
+**Examples:**
+
+```json
+{
+  "employer": "BARMER",
+  "location": "Wuppertal",
+  "employment_type": ["parttime"],
+  "max_details": 5
+}
+```
+
+```json
+{
+  "job_title": "Sekretärin",
+  "location": "Wuppertal",
+  "radius_km": 25,
+  "employment_type": ["parttime"],
+  "max_details": 3,
+  "fields": {
+    "include_fields": ["title", "employer", "salary", "description", "location"]
+  }
+}
+```
+
+**Response includes:**
+- Total search results count
+- Full details for top N jobs (title, description, salary, requirements, etc.)
+- Performance metrics (search_duration_ms, details_duration_ms)
+
+---
+
+### 4. `batch_search_jobs` ⭐⭐ POWER TOOL
+
+Perform multiple different job searches in a single operation - perfect for systematic comparison.
+
+**Why use this?** Compare different employers, job types, or locations simultaneously instead of multiple separate searches.
+
+**Parameters:**
+
+- `searches`: Array of search configurations (max: 10), each with:
+  - `name`: Identifier for this search
+  - All standard search parameters (job_title, location, employer, etc.)
+- `max_details_per_search` (optional): Details to fetch per search (default: 3, max: 10)
+- `fields` (optional): Field filtering applied to all results
+
+**Example - Compare Employers:**
+
+```json
+{
+  "searches": [
+    {
+      "name": "BARMER Jobs",
+      "employer": "BARMER",
+      "location": "Wuppertal",
+      "employment_type": ["parttime"]
+    },
+    {
+      "name": "Siemens Jobs",
+      "employer": "Siemens",
+      "location": "Wuppertal",
+      "employment_type": ["parttime"]
+    }
+  ],
+  "max_details_per_search": 3
+}
+```
+
+**Example - Compare Job Types:**
+
+```json
+{
+  "searches": [
+    {
+      "name": "Sekretariat",
+      "job_title": "Sekretärin",
+      "location": "Wuppertal"
+    },
+    {
+      "name": "Sport/Schwimmen",
+      "job_title": "Schwimm",
+      "location": "Wuppertal"
+    },
+    {
+      "name": "Pädagogik",
+      "job_title": "Pädagog",
+      "location": "Wuppertal"
+    },
+    {
+      "name": "Verwaltung",
+      "job_title": "Verwaltung",
+      "branch": "Bildung",
+      "location": "Wuppertal"
+    }
+  ],
+  "max_details_per_search": 3,
+  "fields": {
+    "include_fields": ["title", "employer", "salary", "description"]
+  }
+}
+```
+
+**Response includes:**
+- Results for each search (with name for identification)
+- Total results found per search
+- Full details for top N jobs per search
+- Error handling (continues if one search fails)
+
+---
+
+### 5. `get_server_status`
 
 Get server status and connection information.
 
@@ -278,6 +401,67 @@ Get server status and connection information.
   - `contract_type`: Removed from API
 
   *These fields remain in the response structure for backward compatibility but will always return `null`.*
+
+## Performance & Efficiency
+
+### Bulk Operations for AI
+
+The new bulk operations in v0.3.0 dramatically reduce the number of tool calls required for common AI workflows:
+
+**Scenario 1: Find and review top 5 jobs**
+```
+Traditional approach:
+- 1x search_jobs
+- 5x get_job_details
+= 6 tool calls
+
+With search_jobs_with_details:
+- 1x search_jobs_with_details
+= 1 tool call (83% reduction!)
+```
+
+**Scenario 2: Compare 4 different job categories**
+```
+Traditional approach:
+- 4x search_jobs
+- 12x get_job_details (3 per search)
+= 16 tool calls
+
+With batch_search_jobs:
+- 1x batch_search_jobs
+= 1 tool call (94% reduction!)
+```
+
+### When to Use What
+
+- **`search_jobs`**: When you only need to see what's available (titles, employers, locations)
+- **`get_job_details`**: When you have a specific job reference number
+- **`search_jobs_with_details`** ⭐: When you want to search AND review details (most common AI workflow)
+- **`batch_search_jobs`** ⭐⭐: When comparing multiple categories (employers, job types, locations)
+
+### Field Filtering (Optional)
+
+Reduce response size and token usage by specifying which fields to include/exclude:
+
+```json
+{
+  "fields": {
+    "include_fields": ["title", "employer", "salary", "description", "location"]
+  }
+}
+```
+
+Or exclude unnecessary fields:
+
+```json
+{
+  "fields": {
+    "exclude_fields": ["raw_data", "cipher_number", "is_temp_agency"]
+  }
+}
+```
+
+**Note:** Field filtering infrastructure is present but full implementation coming in future release.
 
 ## Development
 
