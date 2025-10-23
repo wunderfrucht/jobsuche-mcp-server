@@ -155,7 +155,7 @@ pub struct SearchJobsWithDetailsParams {
     pub employer: Option<String>,
     pub branch: Option<String>,
 
-    /// Automatically fetch details for top N results (default: 5, max: 20)
+    /// Automatically fetch details for top N results (default: 3, max: 10)
     pub max_details: Option<u64>,
 
     /// Optional field filtering to reduce response size
@@ -209,10 +209,10 @@ pub struct BatchSearchItem {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct BatchSearchJobsParams {
-    /// List of searches to perform (max: 10)
+    /// List of searches to perform (max: 5)
     pub searches: Vec<BatchSearchItem>,
 
-    /// Automatically fetch details for top N results per search (default: 3, max: 10)
+    /// Automatically fetch details for top N results per search (default: 2, max: 5)
     pub max_details_per_search: Option<u64>,
 
     /// Optional field filtering to reduce response size
@@ -682,8 +682,8 @@ impl JobsucheMcpServer {
         let search_result = self.search_jobs(search_params).await?;
         let search_duration = search_start.elapsed();
 
-        // Determine how many details to fetch
-        let max_details = params.max_details.unwrap_or(5).min(20);
+        // Determine how many details to fetch (conservative defaults to respect rate limits)
+        let max_details = params.max_details.unwrap_or(3).min(10);
         let jobs_to_fetch = search_result
             .jobs
             .iter()
@@ -693,9 +693,14 @@ impl JobsucheMcpServer {
         info!("Fetching details for {} jobs", jobs_to_fetch.len());
         let details_start = Instant::now();
 
-        // Fetch details for each job
+        // Fetch details for each job with delay to respect rate limits
         let mut jobs_with_details = Vec::new();
-        for job in jobs_to_fetch {
+        for (idx, job) in jobs_to_fetch.iter().enumerate() {
+            // Small delay between requests to avoid rate limiting (except first)
+            if idx > 0 {
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            }
+
             match self
                 .get_job_details(GetJobDetailsParams {
                     reference_number: job.reference_number.clone(),
@@ -748,15 +753,19 @@ impl JobsucheMcpServer {
         params: BatchSearchJobsParams,
     ) -> anyhow::Result<BatchSearchJobsResult> {
         let start = Instant::now();
-        let searches_count = params.searches.len().min(10); // Limit to 10 searches
+        let searches_count = params.searches.len().min(5); // Limit to 5 searches to respect rate limits
 
         info!("Performing batch search with {} searches", searches_count);
 
-        let max_details = params.max_details_per_search.unwrap_or(3).min(10);
+        let max_details = params.max_details_per_search.unwrap_or(2).min(5);
         let mut results = Vec::new();
 
         // Process each search
-        for search_item in params.searches.iter().take(searches_count) {
+        for (search_idx, search_item) in params.searches.iter().take(searches_count).enumerate() {
+            // Small delay between searches to avoid rate limiting (except first)
+            if search_idx > 0 {
+                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+            }
             info!("Processing search: {}", search_item.name);
 
             // Convert to SearchJobsParams
@@ -789,10 +798,15 @@ impl JobsucheMcpServer {
                 }
             };
 
-            // Fetch details if requested
+            // Fetch details if requested (with delay to respect rate limits)
             let mut jobs_with_details = Vec::new();
             if max_details > 0 {
-                for job in search_result.jobs.iter().take(max_details as usize) {
+                for (detail_idx, job) in search_result.jobs.iter().take(max_details as usize).enumerate() {
+                    // Small delay between detail fetches (except first in this search)
+                    if detail_idx > 0 {
+                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                    }
+
                     match self
                         .get_job_details(GetJobDetailsParams {
                             reference_number: job.reference_number.clone(),

@@ -165,8 +165,10 @@ Search for jobs and automatically fetch full details for top results in a single
 **Parameters:**
 
 - All parameters from `search_jobs` (job_title, location, employment_type, etc.)
-- `max_details` (optional): Number of jobs to fetch details for (default: 5, max: 20)
+- `max_details` (optional): Number of jobs to fetch details for (default: 3, max: 10)
 - `fields` (optional): Field filtering (see Field Filtering section)
+
+**⚠️ Rate Limiting:** Includes automatic 100ms delays between detail fetches to respect API rate limits.
 
 **Examples:**
 
@@ -175,7 +177,7 @@ Search for jobs and automatically fetch full details for top results in a single
   "employer": "BARMER",
   "location": "Wuppertal",
   "employment_type": ["parttime"],
-  "max_details": 5
+  "max_details": 3
 }
 ```
 
@@ -207,11 +209,13 @@ Perform multiple different job searches in a single operation - perfect for syst
 
 **Parameters:**
 
-- `searches`: Array of search configurations (max: 10), each with:
+- `searches`: Array of search configurations (max: 5), each with:
   - `name`: Identifier for this search
   - All standard search parameters (job_title, location, employer, etc.)
-- `max_details_per_search` (optional): Details to fetch per search (default: 3, max: 10)
+- `max_details_per_search` (optional): Details to fetch per search (default: 2, max: 5)
 - `fields` (optional): Field filtering applied to all results
+
+**⚠️ Rate Limiting:** Includes automatic delays (200ms between searches, 100ms between details) to respect API rate limits. Conservative defaults prevent overwhelming the API.
 
 **Example - Compare Employers:**
 
@@ -262,7 +266,7 @@ Perform multiple different job searches in a single operation - perfect for syst
       "location": "Wuppertal"
     }
   ],
-  "max_details_per_search": 3,
+  "max_details_per_search": 2,
   "fields": {
     "include_fields": ["title", "employer", "salary", "description"]
   }
@@ -408,29 +412,35 @@ Get server status and connection information.
 
 The new bulk operations in v0.3.0 dramatically reduce the number of tool calls required for common AI workflows:
 
-**Scenario 1: Find and review top 5 jobs**
+**Scenario 1: Find and review top 3 jobs**
 ```
 Traditional approach:
 - 1x search_jobs
-- 5x get_job_details
-= 6 tool calls
+- 3x get_job_details
+= 4 tool calls
 
 With search_jobs_with_details:
-- 1x search_jobs_with_details
-= 1 tool call (83% reduction!)
+- 1x search_jobs_with_details (with auto-delays)
+= 1 tool call (75% reduction!)
 ```
 
 **Scenario 2: Compare 4 different job categories**
 ```
 Traditional approach:
 - 4x search_jobs
-- 12x get_job_details (3 per search)
-= 16 tool calls
+- 8x get_job_details (2 per search)
+= 12 tool calls
 
 With batch_search_jobs:
-- 1x batch_search_jobs
-= 1 tool call (94% reduction!)
+- 1x batch_search_jobs (with auto-delays)
+= 1 tool call (92% reduction!)
 ```
+
+**Rate Limiting Protection:**
+- Automatic 100ms delays between detail fetches
+- Automatic 200ms delays between searches
+- Conservative defaults (max_details: 3, max_details_per_search: 2)
+- Relies on jobsuche library's built-in retry logic with exponential backoff
 
 ### When to Use What
 

@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Rate Limiting Protection**: Conservative defaults to respect API rate limits
+  - `search_jobs_with_details`: default 3 details (max: 10, was 20)
+  - `batch_search_jobs`: default 2 details per search (max: 5, was 10)
+  - Maximum 5 searches in batch (was 10)
+  - Automatic 100-200ms delays between requests
 - Server now reports 5 tools (was 3)
 - Improved error handling for bulk operations (continues on individual failures)
 
