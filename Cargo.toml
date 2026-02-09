@@ -16,7 +16,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1.0"
 async-trait = "0.1"
-rand = "0.9"
+rand = "0.10"
 
 # PulseEngine MCP Framework - Published v0.13.0
 pulseengine-mcp-server = { version = "0.13.0", features = ["stdio-logging"] }
