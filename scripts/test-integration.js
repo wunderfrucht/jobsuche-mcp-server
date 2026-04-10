@@ -7,8 +7,8 @@ console.log("Running integration tests...");
 
 const binaryName =
   process.platform === "win32"
-    ? "template-mcp-server.exe"
-    : "template-mcp-server";
+    ? "jobsuche-mcp-server.exe"
+    : "jobsuche-mcp-server";
 const binaryPath = path.join(__dirname, "..", "dist", binaryName);
 
 // Test 1: Initialize request

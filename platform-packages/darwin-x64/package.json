@@ -1,7 +1,7 @@
 {
-  "name": "@yourusername/template-mcp-server-darwin-x64",
-  "version": "0.1.0",
-  "description": "Template MCP Server binary for macOS x64",
+  "name": "@wunderfrucht/jobsuche-mcp-server-darwin-x64",
+  "version": "0.3.0",
+  "description": "jobsuche-mcp-server binary for macOS x64",
   "main": "index.js",
   "os": [
     "darwin"
@@ -11,16 +11,16 @@
   ],
   "keywords": [
     "mcp",
-    "template",
+    "job-search",
     "binary",
     "macos",
     "x64"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Ralf Anton Beier",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/template-mcp-server.git"
+    "url": "https://github.com/wunderfrucht/jobsuche-mcp-server.git"
   },
   "publishConfig": {
     "access": "public"

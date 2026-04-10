@@ -1,10 +1,10 @@
 {
-  "name": "@yourusername/template-mcp-server",
-  "version": "0.1.0",
-  "description": "Template MCP Server - A Model Context Protocol server template using PulseEngine MCP framework",
+  "name": "@wunderfrucht/jobsuche-mcp-server",
+  "version": "0.3.0",
+  "description": "AI-friendly job search integration server using the German Federal Employment Agency API",
   "main": "index.js",
   "bin": {
-    "template-mcp-server": "./run.js"
+    "jobsuche-mcp-server": "./run.js"
   },
   "scripts": {
     "postinstall": "node install.js",
@@ -13,26 +13,27 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
-    "template",
-    "server",
+    "job-search",
+    "germany",
+    "jobs",
     "rust",
     "cli"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Ralf Anton Beier",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/template-mcp-server.git"
+    "url": "https://github.com/wunderfrucht/jobsuche-mcp-server.git"
   },
-  "homepage": "https://github.com/yourusername/template-mcp-server",
+  "homepage": "https://github.com/wunderfrucht/jobsuche-mcp-server",
   "bugs": {
-    "url": "https://github.com/yourusername/template-mcp-server/issues"
+    "url": "https://github.com/wunderfrucht/jobsuche-mcp-server/issues"
   },
   "optionalDependencies": {
-    "@yourusername/template-mcp-server-darwin-arm64": "0.1.0",
-    "@yourusername/template-mcp-server-darwin-x64": "0.1.0",
-    "@yourusername/template-mcp-server-linux-x64": "0.1.0",
-    "@yourusername/template-mcp-server-win32-x64": "0.1.0"
+    "@wunderfrucht/jobsuche-mcp-server-darwin-arm64": "0.3.0",
+    "@wunderfrucht/jobsuche-mcp-server-darwin-x64": "0.3.0",
+    "@wunderfrucht/jobsuche-mcp-server-linux-x64": "0.3.0",
+    "@wunderfrucht/jobsuche-mcp-server-win32-x64": "0.3.0"
   },
   "engines": {
     "node": ">=14"
