@@ -5,7 +5,7 @@ const { getBinaryPath } = require("./index.js");
 const fs = require("fs");
 
 /**
- * Runs the template-mcp-server binary with the provided arguments
+ * Runs the jobsuche-mcp-server binary with the provided arguments
  */
 function runServer() {
   try {
@@ -22,7 +22,7 @@ function runServer() {
       console.error("");
       console.error("Try running: npm install --force");
       console.error(
-        "Or install from source: cargo install --git https://github.com/yourusername/template-mcp-server.git template-mcp-server",
+        "Or install from source: cargo install --git https://github.com/wunderfrucht/jobsuche-mcp-server.git jobsuche-mcp-server",
       );
       process.exit(1);
     }
@@ -35,7 +35,7 @@ function runServer() {
 
     // Handle child process events
     child.on("error", (err) => {
-      console.error("❌ Failed to start template-mcp-server:", err.message);
+      console.error("❌ Failed to start jobsuche-mcp-server:", err.message);
       process.exit(1);
     });
 
@@ -53,7 +53,7 @@ function runServer() {
     process.on("SIGINT", () => child.kill("SIGINT"));
     process.on("SIGTERM", () => child.kill("SIGTERM"));
   } catch (err) {
-    console.error("❌ Error starting template-mcp-server:", err.message);
+    console.error("❌ Error starting jobsuche-mcp-server:", err.message);
     process.exit(1);
   }
 }

@@ -40,7 +40,7 @@ function getPlatformPackageName() {
       throw new Error(`Unsupported architecture: ${arch}`);
   }
 
-  return `@yourusername/template-mcp-server-${platformName}-${archName}`;
+  return `@wunderfrucht/jobsuche-mcp-server-${platformName}-${archName}`;
 }
 
 /**
@@ -49,7 +49,7 @@ function getPlatformPackageName() {
 function getBinaryPath() {
   const platform = os.platform();
   const binaryName =
-    platform === "win32" ? "template-mcp-server.exe" : "template-mcp-server";
+    platform === "win32" ? "jobsuche-mcp-server.exe" : "jobsuche-mcp-server";
 
   try {
     // Try to get the binary from the platform package
@@ -74,8 +74,8 @@ function getPlatformInfo() {
     binaryPath: getBinaryPath(),
     binaryName:
       os.platform() === "win32"
-        ? "template-mcp-server.exe"
-        : "template-mcp-server",
+        ? "jobsuche-mcp-server.exe"
+        : "jobsuche-mcp-server",
   };
 }
 

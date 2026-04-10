@@ -33,7 +33,7 @@ if (!rustTarget) {
 
 // Binary name (with .exe extension on Windows)
 const binaryName =
-  platform === "win32" ? "template-mcp-server.exe" : "template-mcp-server";
+  platform === "win32" ? "jobsuche-mcp-server.exe" : "jobsuche-mcp-server";
 const sourcePath = path.join(__dirname, "..", "target", "release", binaryName);
 const destPath = path.join(distDir, binaryName);
 
@@ -56,7 +56,7 @@ const wrapperContent = `#!/usr/bin/env node
 const { spawn } = require('child_process');
 const path = require('path');
 
-const binaryName = process.platform === 'win32' ? 'template-mcp-server.exe' : 'template-mcp-server';
+const binaryName = process.platform === 'win32' ? 'jobsuche-mcp-server.exe' : 'jobsuche-mcp-server';
 const binaryPath = path.join(__dirname, binaryName);
 
 const child = spawn(binaryPath, process.argv.slice(2), {
